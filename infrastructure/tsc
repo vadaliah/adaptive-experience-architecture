@@ -1,0 +1,504 @@
+
+Resources:
+  NetworkVpc7FB7348F:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/Resource
+  NetworkVpcprivateisolatedSubnet1SubnetACC755DD:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: private-isolated
+        - Key: aws-cdk:subnet-type
+          Value: Isolated
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc/private-isolatedSubnet1
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/private-isolatedSubnet1/Subnet
+  NetworkVpcprivateisolatedSubnet1RouteTable4099728F:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc/private-isolatedSubnet1
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/private-isolatedSubnet1/RouteTable
+  NetworkVpcprivateisolatedSubnet1RouteTableAssociationCCDC8AC6:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: NetworkVpcprivateisolatedSubnet1RouteTable4099728F
+      SubnetId:
+        Ref: NetworkVpcprivateisolatedSubnet1SubnetACC755DD
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/private-isolatedSubnet1/RouteTableAssociation
+  NetworkVpcprivateisolatedSubnet2SubnetBCE28083:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1b
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: private-isolated
+        - Key: aws-cdk:subnet-type
+          Value: Isolated
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc/private-isolatedSubnet2
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/private-isolatedSubnet2/Subnet
+  NetworkVpcprivateisolatedSubnet2RouteTable5409B2E9:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc/private-isolatedSubnet2
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/private-isolatedSubnet2/RouteTable
+  NetworkVpcprivateisolatedSubnet2RouteTableAssociationCC5CCE8E:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: NetworkVpcprivateisolatedSubnet2RouteTable5409B2E9
+      SubnetId:
+        Ref: NetworkVpcprivateisolatedSubnet2SubnetBCE28083
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/private-isolatedSubnet2/RouteTableAssociation
+  NetworkVpcRestrictDefaultSecurityGroupCustomResource491E144D:
+    Type: Custom::VpcRestrictDefaultSG
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E
+          - Arn
+      DefaultSecurityGroupId:
+        Fn::GetAtt:
+          - NetworkVpc7FB7348F
+          - DefaultSecurityGroup
+      Account: "287238357427"
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/RestrictDefaultSecurityGroupCustomResource/Default
+  NetworkVpcSsmEndpointSecurityGroup70BA50F1:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: AeaSandboxStack/Network/Vpc/SsmEndpoint/SecurityGroup
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      SecurityGroupIngress:
+        - CidrIp:
+            Fn::GetAtt:
+              - NetworkVpc7FB7348F
+              - CidrBlock
+          Description:
+            Fn::Join:
+              - ""
+              - - "from "
+                - Fn::GetAtt:
+                    - NetworkVpc7FB7348F
+                    - CidrBlock
+                - :443
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/SsmEndpoint/SecurityGroup/Resource
+  NetworkVpcSsmEndpointB5FBDFB0:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - NetworkVpcSsmEndpointSecurityGroup70BA50F1
+            - GroupId
+      ServiceName: com.amazonaws.us-east-1.ssm
+      SubnetIds:
+        - Ref: NetworkVpcprivateisolatedSubnet1SubnetACC755DD
+        - Ref: NetworkVpcprivateisolatedSubnet2SubnetBCE28083
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc
+      VpcEndpointType: Interface
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/SsmEndpoint/Resource
+  NetworkVpcSsmMessagesEndpointSecurityGroup5B5533EF:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: AeaSandboxStack/Network/Vpc/SsmMessagesEndpoint/SecurityGroup
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      SecurityGroupIngress:
+        - CidrIp:
+            Fn::GetAtt:
+              - NetworkVpc7FB7348F
+              - CidrBlock
+          Description:
+            Fn::Join:
+              - ""
+              - - "from "
+                - Fn::GetAtt:
+                    - NetworkVpc7FB7348F
+                    - CidrBlock
+                - :443
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/SsmMessagesEndpoint/SecurityGroup/Resource
+  NetworkVpcSsmMessagesEndpoint235160D7:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - NetworkVpcSsmMessagesEndpointSecurityGroup5B5533EF
+            - GroupId
+      ServiceName: com.amazonaws.us-east-1.ssmmessages
+      SubnetIds:
+        - Ref: NetworkVpcprivateisolatedSubnet1SubnetACC755DD
+        - Ref: NetworkVpcprivateisolatedSubnet2SubnetBCE28083
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc
+      VpcEndpointType: Interface
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/SsmMessagesEndpoint/Resource
+  NetworkVpcEc2MessagesEndpointSecurityGroupDF903F9A:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: AeaSandboxStack/Network/Vpc/Ec2MessagesEndpoint/SecurityGroup
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      SecurityGroupIngress:
+        - CidrIp:
+            Fn::GetAtt:
+              - NetworkVpc7FB7348F
+              - CidrBlock
+          Description:
+            Fn::Join:
+              - ""
+              - - "from "
+                - Fn::GetAtt:
+                    - NetworkVpc7FB7348F
+                    - CidrBlock
+                - :443
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/Ec2MessagesEndpoint/SecurityGroup/Resource
+  NetworkVpcEc2MessagesEndpoint2925AEA1:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PrivateDnsEnabled: false
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - NetworkVpcEc2MessagesEndpointSecurityGroupDF903F9A
+            - GroupId
+      ServiceName: com.amazonaws.us-east-1.ec2messages
+      SubnetIds:
+        - Ref: NetworkVpcprivateisolatedSubnet1SubnetACC755DD
+        - Ref: NetworkVpcprivateisolatedSubnet2SubnetBCE28083
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/Network/Vpc
+      VpcEndpointType: Interface
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Network/Vpc/Ec2MessagesEndpoint/Resource
+  CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: Inline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:AuthorizeSecurityGroupEgress
+                  - ec2:RevokeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupEgress
+                Resource:
+                  - Fn::Join:
+                      - ""
+                      - - arn:aws:ec2:us-east-1:287238357427:security-group/
+                        - Fn::GetAtt:
+                            - NetworkVpc7FB7348F
+                            - DefaultSecurityGroup
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Role
+  CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-287238357427-us-east-1
+        S3Key: 02b51ab524e7bcf8f477de3e71e5f9a72e448301b26ba62e9e75a14f9c55a093.zip
+      Timeout: 900
+      MemorySize: 128
+      Handler: __entrypoint__.handler
+      Role:
+        Fn::GetAtt:
+          - CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0
+          - Arn
+      Runtime: nodejs24.x
+      Description: Lambda function for removing all inbound/outbound rules from the VPC default security group
+    DependsOn:
+      - CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Handler
+      aws:asset:path: asset.02b51ab524e7bcf8f477de3e71e5f9a72e448301b26ba62e9e75a14f9c55a093
+      aws:asset:property: Code
+  DatabaseAuroraPostgresSubnets43C6B67E:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnets for AuroraPostgres database
+      SubnetIds:
+        - Ref: NetworkVpcprivateisolatedSubnet1SubnetACC755DD
+        - Ref: NetworkVpcprivateisolatedSubnet2SubnetBCE28083
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Database/AuroraPostgres/Subnets/Default
+  DatabaseAuroraPostgresSecurityGroupDB29474A:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS security group
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Database/AuroraPostgres/SecurityGroup/Resource
+  DatabaseAuroraPostgresSecurityGroupfromAeaSandboxStackDatabaseAccessAccessHostInstanceSecurityGroupAD31857BIndire
+  DatabaseAuroraPostgresSecurityGroupfromAeaSandboxStackDatabaseAccessAccessHostInstanceSecurityGroupAD31857BIndirectPort992A2CFC:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow PostgreSQL access from SSM database access host
+      FromPort:
+        Fn::GetAtt:
+          - DatabaseAuroraPostgres6560EF93
+          - Endpoint.Port
+      GroupId:
+        Fn::GetAtt:
+          - DatabaseAuroraPostgresSecurityGroupDB29474A
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - DatabaseAccessAccessHostInstanceSecurityGroup725BF33B
+          - GroupId
+      ToPort:
+        Fn::GetAtt:
+          - DatabaseAuroraPostgres6560EF93
+          - Endpoint.Port
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Database/AuroraPostgres/SecurityGroup/from AeaSandboxStackDatabaseAccessAccessH
+      aws:cdk:path: AeaSandboxStack/Database/AuroraPostgres/SecurityGroup/from AeaSandboxStackDatabaseAccessAccessHostInstanceSecurityGroupAD31857B:{IndirectPort}
+  AeaSandboxStackDatabaseAuroraPostgresSecret16CC068C3fdaad7efa858a3daf9490cf0a702aeb:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description:
+        Fn::Join:
+          - ""
+          - - "Generated by the CDK for stack: "
+            - Ref: AWS::StackName
+      GenerateSecretString:
+        ExcludeCharacters: " %+~`#$&*()|[]{}:;<>?!'/@\"\\"
+        GenerateStringKey: password
+        PasswordLength: 30
+        SecretStringTemplate: '{"username":"aea_admin"}'
+      Name: aea/sandbox/database/admin
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Database/AuroraPostgres/Secret/Resource
+  DatabaseAuroraPostgresSecretAttachment79FEB236:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId:
+        Ref: AeaSandboxStackDatabaseAuroraPostgresSecret16CC068C3fdaad7efa858a3daf9490cf0a702aeb
+      TargetId:
+        Ref: DatabaseAuroraPostgres6560EF93
+      TargetType: AWS::RDS::DBCluster
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Database/AuroraPostgres/Secret/Attachment/Resource
+  DatabaseAuroraPostgres6560EF93:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      CopyTagsToSnapshot: true
+      DBClusterParameterGroupName: default.aurora-postgresql17
+      DBSubnetGroupName:
+        Ref: DatabaseAuroraPostgresSubnets43C6B67E
+      DatabaseName: aea
+      Engine: aurora-postgresql
+      EngineVersion: "17.4"
+      MasterUserPassword:
+        Fn::Join:
+          - ""
+          - - "{{resolve:secretsmanager:"
+            - Ref: AeaSandboxStackDatabaseAuroraPostgresSecret16CC068C3fdaad7efa858a3daf9490cf0a702aeb
+            - :SecretString:password::}}
+      MasterUsername: aea_admin
+      Port: 5432
+      ServerlessV2ScalingConfiguration:
+        MaxCapacity: 2
+        MinCapacity: 0.5
+      StorageEncrypted: true
+      VpcSecurityGroupIds:
+        - Fn::GetAtt:
+            - DatabaseAuroraPostgresSecurityGroupDB29474A
+            - GroupId
+    UpdateReplacePolicy: Snapshot
+    DeletionPolicy: Snapshot
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Database/AuroraPostgres/Resource
+  DatabaseAuroraPostgreswriterC47FA5A6:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBClusterIdentifier:
+        Ref: DatabaseAuroraPostgres6560EF93
+      DBInstanceClass: db.serverless
+      Engine: aurora-postgresql
+      PromotionTier: 0
+      PubliclyAccessible: false
+    DependsOn:
+      - NetworkVpcprivateisolatedSubnet1RouteTableAssociationCCDC8AC6
+      - NetworkVpcprivateisolatedSubnet2RouteTableAssociationCC5CCE8E
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/Database/AuroraPostgres/writer/Resource
+  DatabaseAccessSsmRoleC7E7B208:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonSSMManagedInstanceCore
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/DatabaseAccess/SsmRole/Resource
+  DatabaseAccessAccessHostInstanceSecurityGroup725BF33B:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: AeaSandboxStack/DatabaseAccess/AccessHost/InstanceSecurityGroup
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/DatabaseAccess/AccessHost
+      VpcId:
+        Ref: NetworkVpc7FB7348F
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/DatabaseAccess/AccessHost/InstanceSecurityGroup/Resource
+  DatabaseAccessAccessHostInstanceProfile78B46B40:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - Ref: DatabaseAccessSsmRoleC7E7B208
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/DatabaseAccess/AccessHost/InstanceProfile
+  DatabaseAccessAccessHost35A59FCD:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: us-east-1a
+      IamInstanceProfile:
+        Ref: DatabaseAccessAccessHostInstanceProfile78B46B40
+      ImageId:
+        Ref: SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118P
+        Ref: SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter
+      InstanceType: t4g.nano
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - DatabaseAccessAccessHostInstanceSecurityGroup725BF33B
+            - GroupId
+      SubnetId:
+        Ref: NetworkVpcprivateisolatedSubnet1SubnetACC755DD
+      Tags:
+        - Key: Name
+          Value: AeaSandboxStack/DatabaseAccess/AccessHost
+      UserData:
+        Fn::Base64: "#!/bin/bash"
+    DependsOn:
+      - DatabaseAccessSsmRoleC7E7B208
+    Metadata:
+      aws:cdk:path: AeaSandboxStack/DatabaseAccess/AccessHost/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+1WwW7jNhD9luWxYNTCRXPIzVHShdHdxnBSHxoExZgcK0wokh2SclxB/15QlGI56yza26LoS
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+1WwW7jNhD9luWxYNTCRXPIzVHShdHdxnBSHxoExZgcK0wokh2SclxB/15QlGI56yza26LoSeSQM/PIeW+oWTE7/6n44QPs/JmQz2dabYr2NoB45rDzf7QoZkW7duK+ZTW8zP/y7IJ9xzgzED5CwB3sR4uPG4OhtGarqkgQlDXs4r5lBmo82nK3d8mw
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+1WwW7jNhD9luWxYNTCRXPIzVHShdHdxnBSHxoExZgcK0wokh2SclxB/15QlGI56yza26LoSeSQM/PIeW+oWTE7/6n44QPs/JmQz2dabYr2NoB45rDzf7QoZkW7duK+ZTW8zP/y7IJ9xzgzED5CwB3sR4uPG4OhtGarqkgQlDXs4r5lBmo82nK3d8mw8FZDQMk4E0rSZ/DP/bbuoXvg5daslyVfkmog4G3vd98yaEBp2Citwv53a8a4jRMLOYxTrEttxfMwr8Et40YrsXA35hNEIx7ZxRa0R86Ua87LN/vBe1W
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+1WwW7jNhD9luWxYNTCRXPIzVHShdHdxnBSHxoExZgcK0wokh2SclxB/15QlGI56yza26LoSeSQM/PIeW+oWTE7/6n44QPs/JmQz2dabYr2NoB45rDzf7QoZkW7duK+ZTW8zP/y7IJ9xzgzED5CwB3sR4uPG4OhtGarqkgQlDXs4r5lBmo82nK3d8mw8FZDQMk4E0rSZ/DP/bbuoXvg5daslyVfkmog4G3vd98yaEBp2Citwv53a8a4jRMLOYxTrEttxfMwr8Et40YrsXA35hNEIx7ZxRa0R86Ua87LN/vBe1WZhWvO51ISen9jSsLhOAke/x/GtwejZ0ymSRqtbAx4BxuNB/vBNvfeCtV784UJSFsQuHbi2khnlUlEa5wYOYvUKIHs4ojJzlIYh5mjV8Zf4RaiDuwiUM
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+1WwW7jNhD9luWxYNTCRXPIzVHShdHdxnBSHxoExZgcK0wokh2SclxB/15QlGI56yza26LoSeSQM/PIeW+oWTE7/6n44QPs/JmQz2dabYr2NoB45rDzf7QoZkW7duK+ZTW8zP/y7IJ9xzgzED5CwB3sR4uPG4OhtGarqkgQlDXs4r5lBmo82nK3d8mw8FZDQMk4E0rSZ/DP/bbuoXvg5daslyVfkmog4G3vd98yaEBp2Citwv53a8a4jRMLOYxTrEttxfMwr8Et40YrsXA35hNEIx7ZxRa0R86Ua87LN/vBe1WZhWvO51ISen9jSsLhOAke/x/GtwejZ0ymSRqtbAx4BxuNB/vBNvfeCtV784UJSFsQuHbi2khnlUlEa5wYOYvUKIHs4ojJzlIYh5mjV8Zf4RaiDuwiUMQuXc03Eaa/16574LcoIqmw/0g2uskh+yJKuTBVutpV1NgLV4BZGK0MZktCw5mwxqBIVzfqPhr1Z8Sh1B1vO57MfdKHKfj/QhaJXpByr7zjX8+bdryLl
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+1WwW7jNhD9luWxYNTCRXPIzVHShdHdxnBSHxoExZgcK0wokh2SclxB/15QlGI56yza26LoSeSQM/PIeW+oWTE7/6n44QPs/JmQz2dabYr2NoB45rDzf7QoZkW7duK+ZTW8zP/y7IJ9xzgzED5CwB3sR4uPG4OhtGarqkgQlDXs4r5lBmo82nK3d8mw8FZDQMk4E0rSZ/DP/bbuoXvg5daslyVfkmog4G3vd98yaEBp2Citwv53a8a4jRMLOYxTrEttxfMwr8Et40YrsXA35hNEIx7ZxRa0R86Ua87LN/vBe1WZhWvO51ISen9jSsLhOAke/x/GtwejZ0ymSRqtbAx4BxuNB/vBNvfeCtV784UJSFsQuHbi2khnlUlEa5wYOYvUKIHs4ojJzlIYh5mjV8Zf4RaiDuwiUMQuXc03Eaa/16574LcoIqmw/0g2uskh+yJKuTBVutpV1NgLV4BZGK0MZktCw5mwxqBIVzfqPhr1Z8Sh1B1vO57MfdKHKfj/QhaJXpByr7zjX8+bdryLlDPQ2u7mWt/EsLHRyBHXaE98P6wdkly/kyN5D83zqNRDNx3p/cX6AJovjA9gBB7xv3Ei68cn0p3u4B1navAdlrLIxaMyuKihGk1kNU4EOybsOElftFcQ
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+1WwW7jNhD9luWxYNTCRXPIzVHShdHdxnBSHxoExZgcK0wokh2SclxB/15QlGI56yza26LoSeSQM/PIeW+oWTE7/6n44QPs/JmQz2dabYr2NoB45rDzf7QoZkW7duK+ZTW8zP/y7IJ9xzgzED5CwB3sR4uPG4OhtGarqkgQlDXs4r5lBmo82nK3d8mw8FZDQMk4E0rSZ/DP/bbuoXvg5daslyVfkmog4G3vd98yaEBp2Citwv53a8a4jRMLOYxTrEttxfMwr8Et40YrsXA35hNEIx7ZxRa0R86Ua87LN/vBe1WZhWvO51ISen9jSsLhOAke/x/GtwejZ0ymSRqtbAx4BxuNB/vBNvfeCtV784UJSFsQuHbi2khnlUlEa5wYOYvUKIHs4ojJzlIYh5mjV8Zf4RaiDuwiUMQuXc03Eaa/16574LcoIqmw/0g2uskh+yJKuTBVutpV1NgLV4BZGK0MZktCw5mwxqBIVzfqPhr1Z8Sh1B1vO57MfdKHKfj/QhaJXpByr7zjX8+bdryLlDPQ2u7mWt/EsLHRyBHXaE98P6wdkly/kyN5D83zqNRDNx3p/cX6AJovjA9gBB7xv3Ei68cn0p3u4B1navAdlrLIxaMyuKihGk1kNU4EOybsOElftFcQYAMeSx19QLpvGZpKmZ7teTSJng1rJN8Xo2XbqPXrdADwZGlq6jhzQFBjQOpP/jPUSu9HbSlTafzNI61s6LvD3DmtBEzKnbMeucmss+R39NS5pEqUn2y
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+1WwW7jNhD9luWxYNTCRXPIzVHShdHdxnBSHxoExZgcK0wokh2SclxB/15QlGI56yza26LoSeSQM/PIeW+oWTE7/6n44QPs/JmQz2dabYr2NoB45rDzf7QoZkW7duK+ZTW8zP/y7IJ9xzgzED5CwB3sR4uPG4OhtGarqkgQlDXs4r5lBmo82nK3d8mw8FZDQMk4E0rSZ/DP/bbuoXvg5daslyVfkmog4G3vd98yaEBp2Citwv53a8a4jRMLOYxTrEttxfMwr8Et40YrsXA35hNEIx7ZxRa0R86Ua87LN/vBe1WZhWvO51ISen9jSsLhOAke/x/GtwejZ0ymSRqtbAx4BxuNB/vBNvfeCtV784UJSFsQuHbi2khnlUlEa5wYOYvUKIHs4ojJzlIYh5mjV8Zf4RaiDuwiUMQuXc03Eaa/16574LcoIqmw/0g2uskh+yJKuTBVutpV1NgLV4BZGK0MZktCw5mwxqBIVzfqPhr1Z8Sh1B1vO57MfdKHKfj/QhaJXpByr7zjX8+bdryLlDPQ2u7mWt/EsLHRyBHXaE98P6wdkly/kyN5D83zqNRDNx3p/cX6AJovjA9gBB7xv3Ei68cn0p3u4B1navAdlrLIxaMyuKihGk1kNU4EOybsOElftFcQYAMeSx19QLpvGZpKmZ7teTSJng1rJN8Xo2XbqPXrdADwZGlq6jhzQFBjQOpP/jPUSu9HbSlTafzNI61s6LvD3DmtBEzKnbMeucmss+R39NS5pEqUn2yVUPsRgCCUaIICPZJuRyogTQSOpNH79eyzMiU4ECrsT63Cy5vVf120Afp4779O4AdLUOG1EbR3aXduRg88hx07yPt6+McYCGvbgF5arcR+wo2ry0kqPk

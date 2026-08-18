@@ -1,0 +1,11 @@
+Executing ddl/001-seed-product-catalog.sql as aea_developer on aea...
+BEGIN
+INSERT 0 15
+INSERT 0 5
+INSERT 0 25
+INSERT 0 25
+INSERT 0 25
+INSERT 0 71
+INSERT 0 28
+COMMIT
+SQL execution completed successfully.
