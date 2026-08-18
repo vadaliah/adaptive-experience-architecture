@@ -1,0 +1,4 @@
+# AEA local developer dependencies
+brew "awscli"
+brew "libpq"
+cask "session-manager-plugin"

@@ -1,14 +1,43 @@
-# Welcome to your CDK TypeScript project
+# AEA AWS Infrastructure
 
-This is a blank project for CDK development with TypeScript.
+AWS infrastructure for the Adaptive Experience Architecture sandbox.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Layout
 
-## Useful commands
+```text
+infrastructure/
+├── bin/                      CDK application entry point
+├── lib/                      CDK stack and constructs
+├── config/                   environment examples
+├── database/
+│   ├── ddl/                  versioned SQL artifacts
+│   ├── logs/                 local execution logs (not committed)
+│   └── scripts/              database execution/bootstrap utilities
+├── docs/                     setup and reproducibility documentation
+└── scripts/                  local/AWS/CDK automation
+```
 
-* `npm run build`   type-check the project
-* `npm run watch`   watch for changes and type-check
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+## Database artifact convention
+
+Database changes use ordered numeric prefixes:
+
+- `001-create-product-catalog.sql`
+- `001-seed-product-catalog.sql`
+- future changes use `002-*`, `003-*`, etc.
+
+Once an increment has been applied to a shared environment, its SQL artifacts are treated as immutable. Future changes are introduced through new forward migrations.
+
+## Normal workflow
+
+```bash
+aws sso login --profile aea-sandbox
+./scripts/validate-aws-env.sh
+./scripts/synth-infra.sh
+```
+
+Deployment is intentionally separated:
+
+```bash
+aws sso login --profile aea-deploy
+./scripts/deploy-sandbox.sh
+```

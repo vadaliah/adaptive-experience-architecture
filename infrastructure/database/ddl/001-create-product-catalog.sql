@@ -2,6 +2,19 @@
 -- AEA / Lily's Florist
 -- Initial MVP product catalog schema
 
+\set ON_ERROR_STOP on
+\timing on
+
+\echo ''
+\echo '======================================================================'
+\echo 'AEA DATABASE OPERATION'
+\echo 'Artifact : 001-create-product-catalog.sql'
+\echo 'Purpose  : Create initial Lily''s Florist product catalog schema'
+\echo '======================================================================'
+
+SELECT clock_timestamp() AS artifact_started_at,
+       'START 001-create-product-catalog.sql' AS operation;
+
 BEGIN;
 
 CREATE TABLE product (
@@ -74,3 +87,19 @@ CREATE INDEX idx_marketing_campaign_display_sequence
     ON marketing_campaign(display_sequence);
 
 COMMIT;
+
+\echo ''
+\echo '--- POST-CREATE VALIDATION --------------------------------------------'
+
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_type = 'BASE TABLE'
+ORDER BY table_name;
+
+SELECT clock_timestamp() AS artifact_completed_at,
+       'SUCCESS 001-create-product-catalog.sql' AS operation;
+
+\echo '======================================================================'
+\echo '001 product catalog schema creation completed successfully.'
+\echo '======================================================================'
