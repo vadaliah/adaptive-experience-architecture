@@ -1,4 +1,0 @@
-# Epic
-
-## Goal
-## User Stories

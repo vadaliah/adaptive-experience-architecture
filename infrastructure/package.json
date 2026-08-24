@@ -20,5 +20,10 @@
   "dependencies": {
     "aws-cdk-lib": "^2.264.0",
     "constructs": "^10.5.0"
+  },
+  "scripts": {
+  "build": "tsc",
+  "typecheck": "tsc --noEmit",
+  "test:bedrock": "ts-node src/tests/bedrock-smoke-test.ts"
   }
 }
