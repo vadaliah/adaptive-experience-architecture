@@ -1,11 +1,13 @@
 {
-    "name": "adaptive-experience-architecture",
-    "private": true,
-    "scripts": {
+  "name": "adaptive-experience-architecture",
+  "private": true,
+  "scripts": {
     "build": "npm run build:backend && npm run build:ui && npm run build:infrastructure",
     "build:backend": "npm --prefix implementations/florist/backend run build",
     "build:ui": "npm --prefix implementations/florist/ui run build",
     "build:infrastructure": "npm --prefix infrastructure run build",
-    "test:product-search": "implementations/florist/backend/scripts/init-runtime.sh npm --prefix implementations/florist/backend run test:product-search"
-    }
+    "test:product-search": "implementations/florist/backend/scripts/init-runtime.sh npm --prefix implementations/florist/backend run test:product-search",
+    "start:backend": "implementations/florist/backend/scripts/init-runtime.sh npm --prefix implementations/florist/backend run start",
+    "stop:backend": "implementations/florist/backend/scripts/stop-runtime.sh"
   }
+}

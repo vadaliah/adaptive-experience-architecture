@@ -42,3 +42,7 @@ dist/
 # Logs
 *.log
 npm-debug.log*
+
+# AEA backend local runtime state
+implementations/florist/backend/runtime/*
+!implementations/florist/backend/runtime/.gitkeep

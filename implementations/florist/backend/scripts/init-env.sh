@@ -6,7 +6,14 @@
 # May be sourced from anywhere inside the Git repository.
 # =============================================================================
 
+
 ENVIRONMENT="${1:-local}"
+
+# -------------------------------------------------------
+# AWS runtime configuration
+# -------------------------------------------------------
+export AWS_PROFILE="${AWS_PROFILE:-aea-deploy}"
+export AWS_REGION="${AWS_REGION:-us-east-2}"
 
 # ---------------------------------------------------------------------------
 # Resolve project locations

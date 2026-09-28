@@ -12,14 +12,48 @@ Asynchronous, event-driven, experience-oriented, and AI-assisted while preservin
 - Selective experience refresh rather than full-page workflow transitions
 
 ### AI reasoning and agent layer
+
 - Claude for natural-language understanding, reasoning, recommendation, and explanation
 - LangChain/LangGraph for retrieval, tool invocation, stateful agent workflows, and human-in-the-loop approval
 - RAG/hybrid retrieval grounded in Lily's product knowledge
 
 The LLM does not directly update authoritative transactional data. It invokes controlled tools/business APIs.
 
+### Agentic capability contract
+
+Agent-accessible application capabilities are registered through a common tool registry.
+
+Each capability defines:
+
+- a capability name and semantic description;
+- an input schema describing deterministic execution criteria;
+- a result definition describing how capability output maps into the Resulting Data Store;
+- an execution function implemented by controlled application code.
+
+Registered capability definitions are transformed into the tool contract exposed to Claude through Amazon Bedrock. Claude interprets natural-language intent and selects a capability while producing structured request criteria and semantic result metadata.
+
+Claude does not execute application code directly. Agent orchestration resolves the requested capability through the application-owned tool registry and invokes its deterministic implementation.
+
+### Resulting Data Store
+
+Capability-specific execution results are normalized into a presentation-independent Resulting Data Store:
+
+    metadata
+      title
+      qualifiers
+      resultCount
+
+    dataset
+      records...
+
+The contract forms the boundary between agent/application orchestration and adaptive presentation.
+
+The Experience layer does not need to know which tool, repository, database query, or infrastructure component produced the dataset. It renders metadata and records supplied through this contract.
+
+This enables additional capabilities to participate in the Adaptive Workspace without requiring capability-specific page flows.
+
 ### Application and domain layer
-- Python/FastAPI as the preferred MVP service layer
+- TypeScript + Node.js + Express for the current MVP application service layer
 - Product, Inventory, Order, Delivery, Payment, Support, and Customer Context services
 - Deterministic validation and transaction processing
 - Business-process orchestrator/state machine for order progression
@@ -71,11 +105,16 @@ For the same session and stream, older responses must not overwrite newer accept
 Trusted services such as Apple Pay and delivery providers are exposed through controlled application APIs/tools. The agent may initiate or coordinate these services but consequential authorization remains explicit and transactional execution remains deterministic.
 
 ## MVP implementation strategy
-Prove the architecture through a thin vertical slice:
 
-Intent → retrieval → recommendation → approval → order transaction → Kafka event → inventory consumer → orchestration state update → UI confirmation.
+The first implemented vertical slice proves the discovery path:
 
-Defer production-depth concerns such as enterprise-scale Kafka topology, sophisticated saga compensation, multi-provider delivery integration, and advanced operational analytics until the vertical slice is working.
+Intent → Claude/Bedrock interpretation → capability selection → structured tool request → deterministic product retrieval → Resulting Data Store → adaptive React rendering.
+
+The broader MVP continues this pathway through:
+
+Product selection → approval → order transaction → Kafka event → inventory consumer → orchestration state update → UI confirmation.
+
+This incremental approach validates the architectural boundaries before transactional capabilities are introduced.
 
 ## Future performance patterns
 - Semantic caching

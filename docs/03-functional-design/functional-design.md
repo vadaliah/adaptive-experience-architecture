@@ -1,3 +1,28 @@
+his immediately before ## Functional flow:
+## Resulting Data Store
+
+Data-producing agent capabilities return results through a common Resulting Data Store contract so that the Adaptive Workspace does not depend on the tool, repository, query, or infrastructure component that produced the data.
+
+The current contract contains:
+
+- `metadata.title` — a short semantic heading appropriate to the invoked capability and customer intent;
+- `metadata.qualifiers` — structured criteria that describe filters or constraints applied to the result;
+- `metadata.resultCount` — the number of records returned;
+- `dataset` — the records produced by deterministic capability execution.
+
+The title remains concise and should not attempt to encode every search criterion. Applied criteria are represented separately as qualifiers so the Adaptive Workspace can render them as filter context without making the primary heading verbose.
+
+For example, an unfiltered request such as “Show me everything Lily has to offer” may produce:
+
+- title: `Full Product Catalog`
+- qualifiers: none
+- result count: the number of matching products
+- dataset: the matching product records
+
+As search capabilities become richer, qualifiers may represent criteria such as product type, occasion, price range, inventory state, recipient context, or other capability-specific constraints.
+
+The Resulting Data Store separates agentic interpretation and deterministic execution from presentation.
+
 # Functional Design
 
 ## Functional vision
