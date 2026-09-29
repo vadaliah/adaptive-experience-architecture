@@ -9,10 +9,12 @@ on:
     paths:
       - "implementations/florist/backend/**"
       - ".github/workflows/backend-ci.yml"
+      - "package.json"
   pull_request:
     paths:
       - "implementations/florist/backend/**"
       - ".github/workflows/backend-ci.yml"
+      - "package.json"
   workflow_dispatch:
 
 permissions:
