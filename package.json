@@ -6,6 +6,7 @@
     "build:backend": "npm --prefix implementations/florist/backend run build",
     "build:ui": "npm --prefix implementations/florist/ui run build",
     "build:infrastructure": "npm --prefix infrastructure run build",
+    "test:backend": "npm --prefix implementations/florist/backend test",
     "test:product-search": "implementations/florist/backend/scripts/init-runtime.sh npm --prefix implementations/florist/backend run test:product-search",
     "start:backend": "implementations/florist/backend/scripts/init-runtime.sh npm --prefix implementations/florist/backend run start",
     "stop:backend": "implementations/florist/backend/scripts/stop-runtime.sh"

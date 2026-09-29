@@ -7,9 +7,13 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "typecheck:test": "tsc -p tsconfig.test.json",
     "test:bedrock": "tsx src/tests/bedrock-smoke-test.ts",
     "test:product-search": "tsx src/tests/product-search-tool-test.ts",
-    "start": "tsx src/server.ts"
+    "start": "tsx src/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +35,8 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.1",
-    "tsx": "^4.23.12"
+    "@vitest/coverage-v8": "^5.0.2",
+    "tsx": "^4.23.12",
+    "vitest": "^5.0.2"
   }
 }

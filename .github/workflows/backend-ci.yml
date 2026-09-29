@@ -1,0 +1,78 @@
+name: Backend CI
+
+# Deterministic backend unit tests only.
+# No AWS credentials, Bedrock, Aurora or SSM access is configured.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "implementations/florist/backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "implementations/florist/backend/**"
+      - ".github/workflows/backend-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    name: Typecheck and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: implementations/florist/backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: implementations/florist/backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck production sources
+        run: npm run typecheck
+
+      - name: Typecheck tests
+        run: npm run typecheck:test
+
+      - name: Run unit tests with coverage
+        run: npm run test:coverage
+
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e '
+              const summary = require("./coverage/coverage-summary.json");
+              const root = process.cwd() + "/";
+              const rows = Object.entries(summary).map(([file, c]) =>
+                `| ${file === "total" ? "**Total**" : file.replace(root, "")} | ${c.statements.pct}% | ${c.branches.pct}% | ${c.functions.pct}% | ${c.lines.pct}% |`);
+              console.log(["## Backend unit test coverage", "", "| File | Statements | Branches | Functions | Lines |", "|---|---|---|---|---|", ...rows].join("\n"));
+            ' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: implementations/florist/backend/coverage/
+          if-no-files-found: ignore
+          retention-days: 14

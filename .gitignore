@@ -46,3 +46,6 @@ npm-debug.log*
 # AEA backend local runtime state
 implementations/florist/backend/runtime/*
 !implementations/florist/backend/runtime/.gitkeep
+
+# AEA backend test coverage output
+implementations/florist/backend/coverage/
