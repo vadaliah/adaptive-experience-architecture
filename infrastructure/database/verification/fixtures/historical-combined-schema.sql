@@ -1,13 +1,7 @@
--- schema.sql
+-- Test fixture only: original pre-efbbb0c combined schema, never a deployment artifact.
+-- 001-create-product-catalog.sql
 -- AEA / Lily's Florist
--- Complete schema through V003 (V003 reconciles historical names only); empty database only
-
-\set ON_ERROR_STOP on
-\timing on
-\echo '======================================================================'
-\echo 'Artifact : schema.sql'
-SELECT clock_timestamp() AS artifact_started_at,
-       'START schema.sql' AS operation;
+-- Initial MVP product catalog schema
 
 BEGIN;
 
@@ -34,21 +28,21 @@ CREATE TABLE product_inventory (
         FOREIGN KEY (product_id) REFERENCES product(product_id) ON DELETE CASCADE
 );
 
-CREATE TABLE product_category (
+CREATE TABLE category (
     category_id          VARCHAR(50) PRIMARY KEY,
     category_name        VARCHAR(100) NOT NULL UNIQUE,
     category_description TEXT,
     seasonal_flag        BOOLEAN NOT NULL DEFAULT FALSE
 );
 
-CREATE TABLE product_category_assignment (
+CREATE TABLE product_category (
     product_id  VARCHAR(50) NOT NULL,
     category_id VARCHAR(50) NOT NULL,
     PRIMARY KEY (product_id, category_id),
-    CONSTRAINT fk_product_category_assignment_product
+    CONSTRAINT fk_product_category_product
         FOREIGN KEY (product_id) REFERENCES product(product_id) ON DELETE CASCADE,
-    CONSTRAINT fk_product_category_assignment_category
-        FOREIGN KEY (category_id) REFERENCES product_category(category_id) ON DELETE CASCADE
+    CONSTRAINT fk_product_category_category
+        FOREIGN KEY (category_id) REFERENCES category(category_id) ON DELETE CASCADE
 );
 
 CREATE TABLE marketing_campaign (
@@ -58,37 +52,26 @@ CREATE TABLE marketing_campaign (
     display_sequence     INTEGER NOT NULL DEFAULT 0 CHECK (display_sequence >= 0)
 );
 
-CREATE TABLE product_campaign_assignment (
+CREATE TABLE product_campaign (
     product_id  VARCHAR(50) NOT NULL,
     campaign_id VARCHAR(50) NOT NULL,
     PRIMARY KEY (product_id, campaign_id),
-    CONSTRAINT fk_product_campaign_assignment_product
+    CONSTRAINT fk_product_campaign_product
         FOREIGN KEY (product_id) REFERENCES product(product_id) ON DELETE CASCADE,
-    CONSTRAINT fk_product_campaign_assignment_campaign
+    CONSTRAINT fk_product_campaign_campaign
         FOREIGN KEY (campaign_id) REFERENCES marketing_campaign(campaign_id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_product_product_type
     ON product(product_type);
 
-CREATE INDEX idx_product_category_assignment_category
-    ON product_category_assignment(category_id);
+CREATE INDEX idx_product_category_category
+    ON product_category(category_id);
 
-CREATE INDEX idx_product_campaign_assignment_campaign
-    ON product_campaign_assignment(campaign_id);
+CREATE INDEX idx_product_campaign_campaign
+    ON product_campaign(campaign_id);
 
 CREATE INDEX idx_marketing_campaign_display_sequence
     ON marketing_campaign(display_sequence);
 
 COMMIT;
-
-\echo '--- POST-OPERATION VALIDATION -----------------------------------------'
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public'
-  AND table_type = 'BASE TABLE'
-ORDER BY table_name;
-
-SELECT clock_timestamp() AS artifact_completed_at,
-       'SUCCESS schema.sql' AS operation;
-\echo '======================================================================'

@@ -1,6 +1,6 @@
 -- static-data.sql
 -- AEA / Lily's Florist
--- Complete controlled/static data through V002
+-- Complete controlled/static data through V003 (V003 reconciles historical names only)
 
 \set ON_ERROR_STOP on
 \timing on
