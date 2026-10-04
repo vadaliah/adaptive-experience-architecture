@@ -93,6 +93,58 @@ def main():
                 require(int(sql('release_incremental', f'SELECT count(*) FROM {table}')) == expected, table)
             print('PASS: isolated V001, independent V002 upgrade, current rebuild schema/data equivalence, unchanged catalog and expected counts.')
             print(COUNTS)
+            # Build historical names from a frozen original DDL fixture, not inverse V003.
+            sql('postgres', 'CREATE DATABASE release_historical')
+            apply('release_historical', 'verification/fixtures/historical-combined-schema.sql')
+            legacy = {'product_category': 'category',
+                      'product_category_assignment': 'product_category',
+                      'product_campaign_assignment': 'product_campaign'}
+            historical_seed = Path(tmp) / 'historical-seed.sql'
+            historical_seed.write_text(re.sub(
+                r'(?<=INSERT INTO )\w+', lambda m: legacy.get(m[0], m[0]),
+                (ROOT / 'ddl/current/static-data.sql').read_text().split('BEGIN;', 1)[1].split('COMMIT;', 1)[0]))
+            apply('release_historical', str(historical_seed))
+            historical_rows = {t: sql('release_historical', f'SELECT row_to_json(t)::text FROM {legacy.get(t, t)} t ORDER BY row_to_json(t)::text') for t in COUNTS}
+            require(historical_rows == incremental_rows, 'Historical seed differs from V001/V002')
+            sql('postgres', 'CREATE DATABASE release_v003 TEMPLATE release_historical')
+            v003_ddl = 'ddl/003-reconcile-historical-schema.sql'
+            v003_gate = 'verification/003-integrity-schema-reconciliation.sql'
+            v003_regression = 'verification/003-regression-product-catalog-campaign.sql'
+            apply('release_v003', v003_ddl)
+            apply('release_v003', 'ddl/003-static-data-noop.sql')
+            apply('release_v003', v003_gate)
+            apply('release_v003', v003_regression)
+            require(schema('release_v003') == schema('release_current'), 'V003 schema differs from current')
+            require(rows('release_v003') == historical_rows, 'V003 changed business data')
+            expect_failure('release_v003', v003_ddl, 'V003 requires the historical combined schema')
+            expect_failure('release_incremental', v003_ddl, 'V003 requires the historical combined schema')
+            v003_cases = [
+                ('partial_category_rename', 'ALTER TABLE product_category RENAME TO product_category_assignment', 'V003 requires the historical combined schema'),
+                ('partial_campaign_rename', 'ALTER TABLE product_campaign RENAME TO product_campaign_assignment', 'V003 requires the historical combined schema'),
+                ('missing_master', 'ALTER TABLE category RENAME TO unexpected_category', 'V003 requires all historical'),
+                ('partial_constraint_rename', 'ALTER TABLE category RENAME CONSTRAINT category_pkey TO unexpected_pkey', 'V003 historical structure mismatch'),
+                ('partial_index_rename', 'ALTER INDEX idx_product_campaign_campaign RENAME TO unexpected_index', 'V003 historical structure mismatch'),
+                ('wrong_category_shape', 'ALTER TABLE category ADD COLUMN unexpected text', 'V003 historical structure mismatch'),
+                ('unvalidated_relationship', 'ALTER TABLE product_campaign DROP CONSTRAINT fk_product_campaign_campaign; ALTER TABLE product_campaign ADD CONSTRAINT fk_product_campaign_campaign FOREIGN KEY (campaign_id) REFERENCES marketing_campaign(campaign_id) ON DELETE CASCADE NOT VALID', 'V003 historical structure mismatch'),
+                # Target index collision occurs after table/constraint renames: prove rollback.
+                ('late_index_collision', 'CREATE TABLE collision_holder (id integer); CREATE INDEX idx_product_campaign_assignment_campaign ON collision_holder(id)', 'already exists'),
+            ]
+            for index, (label, mutation, message) in enumerate(v003_cases):
+                db = f'release_v003_failure_{index}'
+                sql('postgres', f'CREATE DATABASE {db} TEMPLATE release_historical')
+                try:
+                    sql(db, mutation)
+                    before = schema(db)
+                    expect_failure(db, v003_ddl, message)
+                    require(schema(db) == before, f'Failed V003 left partial changes: {label}')
+                    print(f'PASS V003 rejection/atomicity: {label}')
+                finally:
+                    sql('postgres', f'DROP DATABASE {db}')
+            sql('release_v003', "UPDATE product_price SET product_price_usd=80 WHERE product_id='P001'")
+            expect_failure('release_v003', v003_regression, 'Controlled/static values mismatch')
+            sql('release_v003', 'ALTER TABLE product_campaign_assignment RENAME TO product_campaign')
+            expect_failure('release_v003', v003_gate, 'V003 historical table names remain')
+            print('PASS: historical → V003 matches current schema and all data; 12 V003 negative cases.')
             # Each mutation uses a separate disposable copy of the valid V002 database.
             cases = [
                 ('missing_table', 'DROP TABLE product_inventory', catalog_gate, 'Missing release table'),
