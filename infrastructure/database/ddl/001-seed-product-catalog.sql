@@ -1,6 +1,13 @@
 -- 001-seed-product-catalog.sql
 -- AEA / Lily's Florist
--- Synthetic MVP catalog data for UI, SQL-search and future vector-search testing.
+-- V001 Product Catalog controlled/static data
+
+\set ON_ERROR_STOP on
+\timing on
+\echo '======================================================================'
+\echo 'Artifact : 001-seed-product-catalog.sql'
+SELECT clock_timestamp() AS artifact_started_at,
+       'START 001-seed-product-catalog.sql' AS operation;
 
 BEGIN;
 
@@ -20,13 +27,6 @@ INSERT INTO product_category (category_id, category_name, category_description, 
 ('CAT013','Spring','Bright and fresh products associated with the spring season.',TRUE),
 ('CAT014','Congratulations','Products suited to celebrations and congratulations.',FALSE),
 ('CAT015','Housewarming','Products appropriate as gifts for a new home.',FALSE);
-
-INSERT INTO marketing_campaign (campaign_id, campaign_name, campaign_description, display_sequence) VALUES
-('CMP001','Lily''s Recommendations','A curated selection of products recommended by Lily.',1),
-('CMP002','Season''s Best','Featured products selected to reflect the current season.',2),
-('CMP003','Clearance Items','Selected products offered as clearance merchandise.',3),
-('CMP004','Featured Gifts','Gift-oriented products highlighted for easy discovery.',4),
-('CMP005','Valentine''s Favorites','A curated collection of Valentine''s Day favorites.',5);
 
 INSERT INTO product (product_id, product_name, product_short_description, product_long_description, product_thumbnail_reference, product_type) VALUES
 ('P001','Classic Red Rose Bouquet','A timeless bouquet of premium red roses.','A classic bouquet featuring twelve premium red roses arranged with fresh greenery and finished with an elegant wrap.','placeholder://classic-red-rose-bouquet','Bouquet'),
@@ -96,27 +96,19 @@ INSERT INTO product_category_assignment (product_id, category_id) VALUES
 ('P024','CAT001'),('P024','CAT004'),('P024','CAT005'),
 ('P025','CAT013'),('P025','CAT008');
 
-INSERT INTO product_campaign_assignment (product_id, campaign_id) VALUES
-('P001','CMP001'),('P001','CMP005'),
-('P002','CMP001'),('P002','CMP005'),
-('P003','CMP002'),
-('P005','CMP002'),
-('P007','CMP001'),('P007','CMP004'),
-('P008','CMP004'),
-('P009','CMP003'),
-('P010','CMP003'),
-('P011','CMP004'),('P011','CMP005'),
-('P012','CMP004'),
-('P013','CMP001'),('P013','CMP004'),('P013','CMP005'),
-('P014','CMP004'),
-('P015','CMP004'),
-('P016','CMP005'),
-('P017','CMP002'),
-('P018','CMP001'),
-('P020','CMP001'),('P020','CMP005'),
-('P021','CMP002'),
-('P023','CMP004'),
-('P024','CMP001'),
-('P025','CMP002');
-
 COMMIT;
+
+\echo '--- POST-OPERATION VALIDATION -----------------------------------------'
+SELECT 'product' AS table_name, count(*) AS row_count FROM product
+UNION ALL
+SELECT 'product_price' AS table_name, count(*) AS row_count FROM product_price
+UNION ALL
+SELECT 'product_inventory' AS table_name, count(*) AS row_count FROM product_inventory
+UNION ALL
+SELECT 'product_category' AS table_name, count(*) AS row_count FROM product_category
+UNION ALL
+SELECT 'product_category_assignment' AS table_name, count(*) AS row_count FROM product_category_assignment;
+
+SELECT clock_timestamp() AS artifact_completed_at,
+       'SUCCESS 001-seed-product-catalog.sql' AS operation;
+\echo '======================================================================'

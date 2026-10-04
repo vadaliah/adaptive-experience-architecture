@@ -105,8 +105,8 @@ After infrastructure deployment:
 ## Apply SQL artifacts
 
 ```bash
-./database/scripts/run-sql.sh database/ddl/001-create-product-catalog.sql
-./database/scripts/run-sql.sh database/ddl/001-seed-product-catalog.sql
+./database/scripts/run-sql.sh database/ddl/current/schema.sql
+./database/scripts/run-sql.sh database/ddl/current/static-data.sql
 ```
 
 Execution logs are written to `database/logs/` and are intentionally excluded from Git.
