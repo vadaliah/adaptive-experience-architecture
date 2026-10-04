@@ -1,6 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Explicit local mode for disposable validation; no release selection or AWS access.
+# Use separate arguments (not a connection URL) and ignore ambient libpq settings.
+execute_sql() {
+  echo "Executing $SQL_FILE..."
+  psql -X "$@" --set ON_ERROR_STOP=1 --file "$SQL_FILE"
+  echo "SQL execution completed successfully."
+}
+
+if [[ "${1:-}" == "--local" ]]; then
+  [[ $# -eq 5 ]] || { echo "Usage: $0 --local <socket-directory> <database> <user> <sql-file>"; exit 1; }
+  SOCKET_DIRECTORY="$2"
+  LOCAL_DATABASE="$3"
+  LOCAL_USER="$4"
+  SQL_FILE="$5"
+  [[ "$SOCKET_DIRECTORY" == /* && -d "$SOCKET_DIRECTORY" ]] || { echo "ERROR: An absolute Unix socket directory is required."; exit 1; }
+  [[ "$LOCAL_DATABASE" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ && "$LOCAL_DATABASE" != "florist_db" ]] || { echo "ERROR: Invalid local validation database."; exit 1; }
+  [[ -f "$SQL_FILE" ]] || { echo "ERROR: SQL file not found: $SQL_FILE"; exit 1; }
+  # A service/hostaddr from the caller must never redirect local validation.
+  unset PGSERVICE PGSERVICEFILE PGHOSTADDR PGOPTIONS PGPASSWORD PGPASSFILE || true
+  echo "Target: $LOCAL_USER on $LOCAL_DATABASE (local socket $SOCKET_DIRECTORY)"
+  execute_sql --host="$SOCKET_DIRECTORY" --port=5432 --dbname="$LOCAL_DATABASE" --username="$LOCAL_USER" --no-password
+  exit 0
+fi
+
 AWS_PROFILE="${AWS_PROFILE:-aea-sandbox}"
 AWS_REGION="${AWS_REGION:-us-east-2}"
 STACK_NAME="${STACK_NAME:-AeaSandboxStack}"
@@ -58,7 +82,5 @@ nc -z 127.0.0.1 "$LOCAL_PORT" 2>/dev/null || { echo "ERROR: Tunnel unavailable."
 export PGPASSWORD="$(aws rds generate-db-auth-token --hostname "$DB_HOST" --port "$DB_PORT" \
   --region "$AWS_REGION" --username "$DB_USER" --profile "$AWS_PROFILE")"
 
-echo "Executing $SQL_FILE as $DB_USER on $DB_NAME..."
-psql "host=$DB_HOST hostaddr=127.0.0.1 port=$LOCAL_PORT dbname=$DB_NAME user=$DB_USER sslmode=require" \
-  --set ON_ERROR_STOP=1 --file "$SQL_FILE"
-echo "SQL execution completed successfully."
+echo "Target: $DB_USER on $DB_NAME"
+execute_sql "host=$DB_HOST hostaddr=127.0.0.1 port=$LOCAL_PORT dbname=$DB_NAME user=$DB_USER sslmode=require"

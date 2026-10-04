@@ -1,11 +1,15 @@
 # Database releases
 
-DDL and controlled/static DML are versioned together. `ddl/current/schema.sql` and
+Each release package consists of versioned DDL, versioned controlled/static DML,
+integrity verification, and prior-release regression verification where applicable. `ddl/current/schema.sql` and
 `ddl/current/static-data.sql` describe the complete database through V002. Numbered
 SQL files directly under `ddl/` are chronological incremental releases; preserve
-released files and add the next number for future changes, updating current artifacts
+released V001/V002 DDL/DML files unchanged and use V003 or later for future database
+changes, updating current artifacts
 in the same change. `000-sql-operation-template.sql` is a template, not a release.
-There is no database version-tracking table. Git/PRs retain detailed history.
+Verification/framework improvements alone do not create a database release; a new
+version is required when structure or controlled/static data changes. There is no
+database version-tracking table. Git/PRs retain detailed history.
 
 ## Database Release History
 
@@ -20,18 +24,39 @@ other metadata structures. The former duplicate `scripts/ddl` directory is remov
 
 ## Rebuild and upgrade
 
-For an **empty database**, apply either current `schema.sql` then `static-data.sql`,
-or the following files in order (paths relative to this directory):
+`scripts/run-sql.sh <sql-file>` is the common execution utility. Release selection
+and ordering belong to the deployment process; the runner never infers versions.
+The process must stop on any non-zero exit. Successful DDL/DML alone is not a
+successful deployment: every required stage must pass.
 
-1. `ddl/001-create-product-catalog.sql`
-2. `ddl/001-seed-product-catalog.sql`
-3. `ddl/002-create-product-campaign.sql`
-4. `ddl/002-seed-product-campaign.sql`
+Apply these explicitly selected packages (paths relative to this directory):
 
-For a database already at V001, apply only steps 3–4. Do not combine the current
-and incremental paths, or replay already applied artifacts. Each file is transactional
-and uses psql error-stop, timing, timestamp logging and post-operation validation.
-Deployment remains a separate explicit operation using the existing runner.
+| Release | DDL → DML → integrity → prior-release regression |
+| --- | --- |
+| V001 | `ddl/001-create-product-catalog.sql` → `ddl/001-seed-product-catalog.sql` → `verification/001-integrity-product-catalog.sql`; no prior release. |
+| V002 | `ddl/002-create-product-campaign.sql` → `ddl/002-seed-product-campaign.sql` → `verification/002-integrity-product-campaign.sql` → `verification/002-regression-product-catalog.sql`. |
+
+After database verification, run applicable application regression tests. The current
+backend gates are `npm run typecheck`, `npm run typecheck:test`, and
+`npm run test:coverage` from `implementations/florist/backend`. All must succeed.
+
+For an **empty database**, apply V001 then V002, or provision using
+`ddl/current/schema.sql` then `ddl/current/static-data.sql` and run both integrity
+gates followed by application regression. Current artifacts represent the complete
+latest database for clean provisioning/reconstruction, **not incremental upgrades**.
+For an established V001 database, apply only the V002 package and application gates.
+Do not combine the current and incremental paths, replay applied artifacts, or
+add DROP/CREATE workarounds. Numbered released DDL/DML remain immutable.
+
+Verification runs in read-only, repeatable-read transactions and raises exceptions
+on structure, constraints/indexes, count, orphan or static-value mismatches. Static
+fingerprints cover every released column/value in C-sorted JSONB rows; they are
+fixed expectations captured from the immutable seed artifacts, not recalculated
+from the database being verified. These gates target the controlled release baseline,
+including seeded inventory; a database with intentional operational changes needs
+an explicitly reviewed verification policy, not silently refreshed expectations.
+The V002 regression gate reuses V001 integrity verification without duplicating it.
+psql error-stop and the runner propagate failures as non-zero exit codes.
 
 This split corrects the original combined V001 artifact boundary once: the previous
 V001 included campaigns. An environment built from that old combined artifact already
@@ -40,8 +65,27 @@ planning any upgrade. No live database migration is performed by this restructur
 
 ## Local validation
 
-Run `python3 infrastructure/database/scripts/validate-releases.py` with PostgreSQL
-server/client binaries on `PATH`. It creates a disposable, Unix-socket-only local
-cluster, verifies V001 in isolation, upgrades it with V002, and compares the result
-with a separate current-artifact rebuild, including schema, all rows and row counts.
-It never uses configured database credentials or connects to an existing database.
+Install backend dependencies with `npm ci` in `implementations/florist/backend`,
+then run `python3 infrastructure/database/scripts/validate-releases.py` with Python 3,
+PostgreSQL server/client binaries, Node.js and npm on `PATH` (validated with PostgreSQL
+18). It creates a disposable Unix-socket-only local cluster and routes **all** release,
+current and verification artifacts through the common runner's explicit local mode:
+
+```sh
+scripts/run-sql.sh --local <absolute-socket-directory> <database> <user> <sql-file>
+```
+
+Local mode uses port 5432 on that socket directory, requires an explicit database,
+rejects `florist_db`, and does not perform AWS discovery or authentication. The existing
+remote runner path is unchanged apart from ignoring psql startup files for predictable
+execution. The validator strips ambient PostgreSQL connection settings and never
+connects to an existing database.
+
+Validation gates V001 before capturing its state, gates V002 and V001 regression,
+compares complete schema/all rows with an independent current rebuild, and verifies
+27 negative cases: missing prerequisites/seeds, missing tables, altered column types,
+constraints/indexes (including unvalidated FKs), missing rows, same-count static-value
+changes, and six orphan relationships. Each corruption uses a disposable database
+copy and must fail with the intended diagnostic. The cluster is stopped/removed,
+then backend typechecks and unit tests run only after all database checks pass.
+No live database deployment is performed by this validation.
