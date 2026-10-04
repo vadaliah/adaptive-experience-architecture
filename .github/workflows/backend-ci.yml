@@ -11,10 +11,6 @@ on:
       - ".github/workflows/backend-ci.yml"
       - "package.json"
   pull_request:
-    paths:
-      - "implementations/florist/backend/**"
-      - ".github/workflows/backend-ci.yml"
-      - "package.json"
   workflow_dispatch:
 
 permissions:
@@ -26,7 +22,7 @@ concurrency:
 
 jobs:
   unit-tests:
-    name: Typecheck and unit tests
+    name: typecheck and unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

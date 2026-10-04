@@ -4,7 +4,7 @@
 
 BEGIN;
 
-INSERT INTO category (category_id, category_name, category_description, seasonal_flag) VALUES
+INSERT INTO product_category (category_id, category_name, category_description, seasonal_flag) VALUES
 ('CAT001','Romantic','Products suited to romantic occasions and expressions of affection.',FALSE),
 ('CAT002','Anniversary','Products suited to celebrating anniversaries.',FALSE),
 ('CAT003','Birthday','Products suited to birthday celebrations.',FALSE),
@@ -69,7 +69,7 @@ INSERT INTO product_inventory (product_id, quantity) VALUES
 ('P016',22),('P017',11),('P018',9),('P019',13),('P020',4),
 ('P021',16),('P022',6),('P023',7),('P024',10),('P025',12);
 
-INSERT INTO product_category (product_id, category_id) VALUES
+INSERT INTO product_category_assignment (product_id, category_id) VALUES
 ('P001','CAT001'),('P001','CAT002'),('P001','CAT004'),('P001','CAT011'),
 ('P002','CAT001'),('P002','CAT002'),('P002','CAT005'),('P002','CAT010'),('P002','CAT011'),
 ('P003','CAT003'),('P003','CAT006'),('P003','CAT013'),
@@ -96,7 +96,7 @@ INSERT INTO product_category (product_id, category_id) VALUES
 ('P024','CAT001'),('P024','CAT004'),('P024','CAT005'),
 ('P025','CAT013'),('P025','CAT008');
 
-INSERT INTO product_campaign (product_id, campaign_id) VALUES
+INSERT INTO product_campaign_assignment (product_id, campaign_id) VALUES
 ('P001','CMP001'),('P001','CMP005'),
 ('P002','CMP001'),('P002','CMP005'),
 ('P003','CMP002'),
