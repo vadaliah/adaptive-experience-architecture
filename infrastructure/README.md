@@ -19,13 +19,7 @@ infrastructure/
 
 ## Database artifact convention
 
-Database changes use ordered numeric prefixes:
-
-- `001-create-product-catalog.sql`
-- `001-seed-product-catalog.sql`
-- future changes use `002-*`, `003-*`, etc.
-
-Once an increment has been applied to a shared environment, its SQL artifacts are treated as immutable. Future changes are introduced through new forward migrations.
+See [Database releases](database/README.md) for current artifacts, incremental releases, and rebuild instructions.
 
 ## Normal workflow
 

@@ -1,6 +1,13 @@
--- 001-seed-product-catalog.sql
+-- static-data.sql
 -- AEA / Lily's Florist
--- Synthetic MVP catalog data for UI, SQL-search and future vector-search testing.
+-- Complete controlled/static data through V002
+
+\set ON_ERROR_STOP on
+\timing on
+\echo '======================================================================'
+\echo 'Artifact : static-data.sql'
+SELECT clock_timestamp() AS artifact_started_at,
+       'START static-data.sql' AS operation;
 
 BEGIN;
 
@@ -120,3 +127,22 @@ INSERT INTO product_campaign_assignment (product_id, campaign_id) VALUES
 ('P025','CMP002');
 
 COMMIT;
+
+\echo '--- POST-OPERATION VALIDATION -----------------------------------------'
+SELECT 'product' AS table_name, count(*) AS row_count FROM product
+UNION ALL
+SELECT 'product_price' AS table_name, count(*) AS row_count FROM product_price
+UNION ALL
+SELECT 'product_inventory' AS table_name, count(*) AS row_count FROM product_inventory
+UNION ALL
+SELECT 'product_category' AS table_name, count(*) AS row_count FROM product_category
+UNION ALL
+SELECT 'product_category_assignment' AS table_name, count(*) AS row_count FROM product_category_assignment
+UNION ALL
+SELECT 'marketing_campaign' AS table_name, count(*) AS row_count FROM marketing_campaign
+UNION ALL
+SELECT 'product_campaign_assignment' AS table_name, count(*) AS row_count FROM product_campaign_assignment;
+
+SELECT clock_timestamp() AS artifact_completed_at,
+       'SUCCESS static-data.sql' AS operation;
+\echo '======================================================================'
