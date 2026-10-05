@@ -21,7 +21,6 @@ export type ResultMetadataDefinition = {
   };
 };
 
-
 /**
  * Describes how the result returned by a capability should be
  * normalized into the AEA Resulting Data Store.
@@ -34,7 +33,6 @@ export type ResultDefinition = {
 
   metadataSchema: ResultMetadataDefinition;
 };
-
 
 /**
  * Standard definition for an AEA agentic capability.
@@ -58,34 +56,22 @@ export type ToolDefinition<TInput = unknown, TResult = unknown> = {
 
   resultDefinition: ResultDefinition;
 
-  execute: (input: TInput) => Promise<TResult>;
+  execute: (input: TInput, context?: { requestId: string }) => Promise<TResult>;
 };
 
+const toolRegistry: Record<string, ToolDefinition<any, any>> = {};
 
-const toolRegistry: Record<
-  string,
-  ToolDefinition<any, any>
-> = {};
-
-
-export function appendTool(
-  tool: ToolDefinition<any, any>
-): void {
-
+export function appendTool(tool: ToolDefinition<any, any>): void {
   if (toolRegistry[tool.name]) {
-    throw new Error(
-      `Tool already exists: ${tool.name}`
-    );
+    throw new Error(`Tool already exists: ${tool.name}`);
   }
 
   toolRegistry[tool.name] = tool;
 }
 
-
 export function getTool(name: string) {
   return toolRegistry[name];
 }
-
 
 export function getAllTools() {
   return Object.values(toolRegistry);

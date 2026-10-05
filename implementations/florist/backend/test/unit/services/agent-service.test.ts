@@ -99,7 +99,7 @@ describe("AgentService.processIntent", () => {
 
     const result = await new AgentService().processIntent("show me items");
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       metadata: {
         title: "Test Items",
         qualifiers: [],
@@ -145,7 +145,9 @@ describe("AgentService.processIntent", () => {
     await new AgentService().processIntent("x");
 
     expect(execute).toHaveBeenCalledTimes(1);
-    expect(execute).toHaveBeenCalledWith(VALID_INPUT.request);
+    expect(execute).toHaveBeenCalledWith(VALID_INPUT.request, {
+      requestId: expect.any(String),
+    });
   });
 
   it("uses the tool's datasetField to locate the dataset", async () => {
@@ -355,15 +357,13 @@ describe("AgentService.processIntent", () => {
 
 describe("Campaign prompt grounding", () => {
   it("executes explicit Valentine's intent and discards invented qualifiers", async () => {
-    const execute = vi
-      .fn()
-      .mockResolvedValue({
-        campaign: {
-          campaignId: "CMP005",
-          campaignName: "Valentine's Favorites",
-        },
-        products: [{ productId: "P001" }],
-      });
+    const execute = vi.fn().mockResolvedValue({
+      campaign: {
+        campaignId: "CMP005",
+        campaignName: "Valentine's Favorites",
+      },
+      products: [{ productId: "P001" }],
+    });
     getTool.mockReturnValue(createTestTool({ execute }));
     decide(
       {
@@ -378,7 +378,10 @@ describe("Campaign prompt grounding", () => {
     const result = await new AgentService().processIntent(
       "Show me Valentine's Day flowers",
     );
-    expect(execute).toHaveBeenCalledWith({ campaignId: "CMP005" });
+    expect(execute).toHaveBeenCalledWith(
+      { campaignId: "CMP005" },
+      { requestId: result.requestId },
+    );
     expect(result.metadata.qualifiers).toEqual([
       "Campaign: Valentine's Favorites",
     ]);
@@ -418,4 +421,94 @@ describe("Campaign prompt grounding", () => {
     ).toBe("message");
     expect(execute).not.toHaveBeenCalled();
   });
+});
+
+it("correlates grounded agent proposal, validated arguments and executed campaign without model metadata", async () => {
+  const execute = vi
+    .fn()
+    .mockResolvedValue({
+      campaign: { campaignId: "CMP005", campaignName: "Valentine's Favorites" },
+      products: [{ productId: "P001" }],
+    });
+  getTool.mockReturnValue(createTestTool({ execute }));
+  decide(
+    {
+      request: { campaignId: "CMP005" },
+      metadata: { title: "internal model claim", qualifiers: ["under $75"] },
+    },
+    "getCampaignProducts",
+  );
+  const result = await new AgentService().processIntent(
+    "Valentine's flowers under $75",
+    "prompt-123",
+  );
+  expect(result.trace).toEqual({
+    requestId: "prompt-123",
+    interactionSource: "prompt",
+    explicitCriteria: [{ kind: "campaign", campaignId: "CMP005" }],
+    proposedCapability: "getCampaignProducts",
+    validatedArguments: { campaignId: "CMP005" },
+    executedCapabilities: ["getCampaignProducts"],
+    appliedCriteria: [{ kind: "campaign", campaignId: "CMP005" }],
+    outcome: "succeeded",
+    resultCount: 1,
+    validation: "grounded_campaign",
+  });
+  expect(JSON.stringify(result.trace)).not.toContain("under $75");
+  expect(execute).toHaveBeenCalledWith(
+    { campaignId: "CMP005" },
+    { requestId: "prompt-123" },
+  );
+});
+it("records a rejected proposal with no execution or applied criteria", async () => {
+  const execute = vi.fn();
+  getTool.mockReturnValue(createTestTool({ execute }));
+  decide(
+    {
+      request: { campaignId: "CMP999" },
+      metadata: { title: "x", qualifiers: [] },
+    },
+    "getCampaignProducts",
+  );
+  const result = await new AgentService().processIntent(
+    "Valentine's flowers",
+    "rejected-123",
+  );
+  expect(result.trace).toMatchObject({
+    requestId: "rejected-123",
+    proposedCapability: "getCampaignProducts",
+    validatedArguments: null,
+    executedCapabilities: [],
+    appliedCriteria: [],
+    outcome: "rejected",
+    resultCount: 0,
+  });
+  expect(execute).not.toHaveBeenCalled();
+});
+it("does not preserve campaign criteria between prompt interactions", async () => {
+  const execute = vi
+    .fn()
+    .mockResolvedValue({
+      campaign: { campaignId: "CMP005", campaignName: "Valentine's Favorites" },
+      products: [],
+    });
+  getTool.mockReturnValue(createTestTool({ execute }));
+  decide(
+    {
+      request: { campaignId: "CMP005" },
+      metadata: { title: "x", qualifiers: [] },
+    },
+    "getCampaignProducts",
+  );
+  const agent = new AgentService();
+  await agent.processIntent("Valentine's flowers", "first");
+  const next = await agent.processIntent("show something under $75", "second");
+  expect(next.trace).toMatchObject({
+    requestId: "second",
+    explicitCriteria: [],
+    appliedCriteria: [],
+    executedCapabilities: [],
+    outcome: "rejected",
+  });
+  expect(execute).toHaveBeenCalledTimes(1);
 });

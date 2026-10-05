@@ -74,7 +74,12 @@ it("preserves catalog and all 28 relationships", async () => {
 
 it("HTTP discovery and explicit selection bypass agent; prompt carries no selection", async () => {
   const agent = {
-    processIntent: vi.fn().mockResolvedValue({ kind: "message" }),
+    processIntent: vi
+      .fn()
+      .mockImplementation(async (_prompt: string, requestId: string) => ({
+        kind: "message",
+        requestId,
+      })),
   };
   const server = createApp(agent, service).listen(0, "127.0.0.1");
   await new Promise<void>((resolve, reject) => {
@@ -85,7 +90,10 @@ it("HTTP discovery and explicit selection bypass agent; prompt carries no select
   const post = (body: object) =>
     fetch(base + "/api/intent", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-ID": "http-test-123",
+      },
       body: JSON.stringify(body),
     });
   try {
@@ -104,10 +112,23 @@ it("HTTP discovery and explicit selection bypass agent; prompt carries no select
     expect(result.metadata.qualifiers).toEqual([
       "Campaign: Valentine's Favorites",
     ]);
+    expect(result.requestId).toBe("http-test-123");
+    expect(result.trace).toMatchObject({
+      requestId: "http-test-123",
+      interactionSource: "ribbon",
+      proposedCapability: "getCampaignProducts",
+      explicitCriteria: [{ kind: "campaign", campaignId: "CMP005" }],
+      validatedArguments: { campaignId: "CMP005" },
+      executedCapabilities: ["getCampaignProducts"],
+      appliedCriteria: [{ kind: "campaign", campaignId: "CMP005" }],
+      resultCount: 6,
+      outcome: "succeeded",
+    });
     expect(agent.processIntent).not.toHaveBeenCalled();
     await post({ prompt: "show everything" });
     expect(agent.processIntent).toHaveBeenCalledExactlyOnceWith(
       "show everything",
+      "http-test-123",
     );
     expect((await post({ prompt: "hello", campaignId: "CMP005" })).status).toBe(
       400,

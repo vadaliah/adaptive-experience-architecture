@@ -25,6 +25,7 @@ const campaigns = [
   },
 ];
 const result: IntentResult = {
+  requestId: "fixture",
   kind: "products",
   metadata: { title: "Campaign", qualifiers: [], resultCount: 1 },
   dataset: [{ productId: "P001" }],
@@ -66,14 +67,18 @@ it("loads campaigns and atomically commits products and presentation; subsequent
   const api = {
     listCampaigns: vi.fn().mockResolvedValue({ campaigns }),
     getCampaignProducts: vi.fn(
-      () => new Promise<IntentResult>((r) => (resolve = r)),
+      (_id: string, requestId?: string) =>
+        new Promise<IntentResult>(
+          (r) => (resolve = (value) => r({ ...value, requestId: requestId! })),
+        ),
     ),
     prompt: vi
       .fn()
-      .mockResolvedValue({
+      .mockImplementation(async (_prompt: string, requestId?: string) => ({
         ...result,
+        requestId: requestId!,
         presentation: { selectedCampaignId: null },
-      }),
+      })),
   };
   const { result: hook } = renderHook(() => useCampaignExperience(api));
   await waitFor(() => expect(hook.current.campaignLoading).toBe(false));
@@ -91,7 +96,10 @@ it("loads campaigns and atomically commits products and presentation; subsequent
   expect(hook.current.selectedCampaignId).toBe("CMP005");
   expect(hook.current.result?.dataset).toEqual([{ productId: "P001" }]);
   await act(() => hook.current.submitPrompt("show everything"));
-  expect(api.prompt).toHaveBeenCalledExactlyOnceWith("show everything");
+  expect(api.prompt).toHaveBeenCalledExactlyOnceWith(
+    "show everything",
+    expect.any(String),
+  );
   expect(hook.current.selectedCampaignId).toBeNull();
 });
 it("keeps last successful view on failure and ignores stale responses", async () => {
@@ -101,12 +109,16 @@ it("keeps last successful view on failure and ignores stale responses", async ()
     getCampaignProducts: vi
       .fn()
       .mockImplementationOnce(
-        () => new Promise<IntentResult>((r) => (first = r)),
+        (_id: string, requestId?: string) =>
+          new Promise<IntentResult>(
+            (r) => (first = (value) => r({ ...value, requestId: requestId! })),
+          ),
       )
-      .mockResolvedValue({
+      .mockImplementation(async (_id: string, requestId?: string) => ({
         ...result,
+        requestId: requestId!,
         presentation: { selectedCampaignId: "CMP001" },
-      }),
+      })),
     prompt: vi.fn().mockRejectedValue(new Error("Failed")),
   };
   const { result: h } = renderHook(() => useCampaignExperience(api));
@@ -128,14 +140,55 @@ it("keeps last successful view on failure and ignores stale responses", async ()
 it("wire requests contain independent prompt and campaign payloads", async () => {
   const fetcher = vi
     .fn()
-    .mockResolvedValue({ ok: true, json: async () => result });
+    .mockImplementation(async (_url: string, init: RequestInit) => ({
+      ok: true,
+      json: async () => ({
+        ...result,
+        requestId: (init.headers as Record<string, string>)["X-Request-ID"],
+      }),
+    }));
   vi.stubGlobal("fetch", fetcher);
-  await campaignApi.getCampaignProducts("CMP005");
-  await campaignApi.prompt("under $75");
+  await campaignApi.getCampaignProducts("CMP005", "wire-ribbon");
+  await campaignApi.prompt("under $75", "wire-prompt");
+  expect(fetcher.mock.calls[0][1].headers["X-Request-ID"]).toBe("wire-ribbon");
+  expect(fetcher.mock.calls[1][1].headers["X-Request-ID"]).toBe("wire-prompt");
   expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({
     campaignId: "CMP005",
   });
   expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({
     prompt: "under $75",
   });
+});
+
+it("rejects a response belonging to another interaction without changing the view", async () => {
+  const api = {
+    listCampaigns: vi.fn().mockResolvedValue({ campaigns }),
+    getCampaignProducts: vi
+      .fn()
+      .mockResolvedValue({ ...result, requestId: "wrong" }),
+    prompt: vi.fn(),
+  };
+  const { result: h } = renderHook(() => useCampaignExperience(api));
+  await waitFor(() => expect(h.current.campaignLoading).toBe(false));
+  await act(() => h.current.selectCampaign("CMP005"));
+  expect(h.current.error).toContain("correlation mismatch");
+  expect(h.current.result).toBeNull();
+  expect(h.current.selectedCampaignId).toBeNull();
+});
+it("checks API response correlation for discovery and intent", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ requestId: "wrong" }),
+      }),
+  );
+  await expect(campaignApi.listCampaigns("discovery-1")).rejects.toThrow(
+    "correlation mismatch",
+  );
+  await expect(campaignApi.prompt("hello", "prompt-1")).rejects.toThrow(
+    "correlation mismatch",
+  );
 });

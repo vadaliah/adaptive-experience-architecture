@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   campaignApi,
+  createRequestId,
   type Campaign,
   type IntentResult,
 } from "../services/campaign-api";
@@ -34,12 +35,15 @@ export function useCampaignExperience(api = campaignApi) {
       revision.current++;
     };
   }, [api]);
-  async function run(action: () => Promise<IntentResult>) {
+  async function run(action: (requestId: string) => Promise<IntentResult>) {
     const id = ++revision.current;
+    const requestId = createRequestId();
     setLoading(true);
     setError(null);
     try {
-      const result = await action();
+      const result = await action(requestId);
+      if (result.requestId !== requestId)
+        throw new Error(`Response correlation mismatch for ${requestId}`);
       if (id === revision.current)
         setView({
           result,
@@ -59,7 +63,9 @@ export function useCampaignExperience(api = campaignApi) {
     ...view,
     loading,
     error,
-    selectCampaign: (id: string) => run(() => api.getCampaignProducts(id)),
-    submitPrompt: (prompt: string) => run(() => api.prompt(prompt)),
+    selectCampaign: (id: string) =>
+      run((requestId) => api.getCampaignProducts(id, requestId)),
+    submitPrompt: (prompt: string) =>
+      run((requestId) => api.prompt(prompt, requestId)),
   };
 }

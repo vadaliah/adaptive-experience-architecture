@@ -120,3 +120,34 @@ occasion, category and flower-only filtering are not implemented.
 The canonical V003 database model is used without modifying database artifacts,
 CDK, connection configuration, or the SQL runner. Tests use disposable local data;
 application deployment and live model evaluation are separate activities.
+
+### Orchestration decisions and request correlation
+
+`Orchestrator` owns the single-proposal execution lifecycle and trace recording.
+A typed `Proposal` is converted by `prepareCapability` into an `ExecutionPlan`
+or a message/rejection. The capability policy adapter owns argument/grounding
+validation and result mapping; `AgentService` only obtains a model proposal.
+The direct HTTP route uses the same boundary without a model call. This is a
+single-step boundary, not a workflow engine. Future orchestration can change this
+layer without changing CampaignService, CampaignRepository, or CampaignRibbon.
+
+React generates a correlation ID per interaction, passes it as `X-Request-ID`,
+and checks the response ID before committing results. The API accepts bounded
+alphanumeric/hyphen/underscore IDs or generates an ID for legacy/invalid headers,
+returns it in the response header/body, and passes it through agent orchestration
+and the tool execution context. Correlation IDs are diagnostic identifiers, not
+credentials or idempotency keys. Existing revision-based stale-response protection
+is retained independently. No selection/context is sent with prompts.
+
+Successful results and clarification/rejection results include `requestId` and
+`trace`; campaign discovery includes them too. Traces contain source, proposed
+capability, validated arguments, completed capabilities, outcome/count, and
+validation status. `explicitCriteria` records only supported criteria explicitly
+recognized by application policy (currently campaign references); it is not a
+full prompt transcript or a generalized filter representation. `appliedCriteria`
+is populated only after successful execution and includes only enforced campaign
+membership. Failed/rejected executions never claim applied criteria. Trace records
+are emitted as structured `interaction_decision` log events; execution/provider
+failures retain the correlation ID in server logs and return a safe error plus ID.
+No raw prompts, model reasoning, provider payloads, or model-generated qualifiers
+are included in traces. Trace sink failures cannot change business results.
