@@ -80,7 +80,7 @@ describe("searchProducts tool", () => {
 
 
   it("delegates the request to the repository and wraps the products", async () => {
-    const products = [{ productId: 1 }, { productId: 2 }];
+    const products = [{ productId: "P001" }, { productId: "P002" }];
     searchProducts.mockResolvedValue(products);
 
     const input = { returnAllProducts: true };

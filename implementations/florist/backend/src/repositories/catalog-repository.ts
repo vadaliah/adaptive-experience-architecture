@@ -4,7 +4,7 @@ import type { ProductSearchRequest } from "../models/product-search-request.js";
 const { Pool } = pg;
 
 export type ProductRecord = {
-  productId: number;
+  productId: string;
   productName: string;
   productDescription: string | null;
   productType: string | null;

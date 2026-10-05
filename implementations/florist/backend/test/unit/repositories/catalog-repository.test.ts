@@ -101,7 +101,7 @@ describe("CatalogRepository.searchProducts", () => {
       rowCount: 2,
       rows: [
         {
-          product_id: 1,
+          product_id: "P001",
           product_name: "Lily Bouquet",
           product_short_description: "White lilies",
           product_type: "bouquet",
@@ -109,7 +109,7 @@ describe("CatalogRepository.searchProducts", () => {
           quantity: "12"
         },
         {
-          product_id: 2,
+          product_id: "P002",
           product_name: "Rose Vase",
           product_short_description: null,
           product_type: null,
@@ -127,7 +127,7 @@ describe("CatalogRepository.searchProducts", () => {
 
     expect(products).toEqual([
       {
-        productId: 1,
+        productId: "P001",
         productName: "Lily Bouquet",
         productDescription: "White lilies",
         productType: "bouquet",
@@ -135,7 +135,7 @@ describe("CatalogRepository.searchProducts", () => {
         quantity: 12
       },
       {
-        productId: 2,
+        productId: "P002",
         productName: "Rose Vase",
         productDescription: null,
         productType: null,
@@ -151,7 +151,7 @@ describe("CatalogRepository.searchProducts", () => {
       rowCount: 2,
       rows: [
         {
-          product_id: 1,
+          product_id: "P001",
           product_name: "No Price",
           product_short_description: null,
           product_type: null,
@@ -159,7 +159,7 @@ describe("CatalogRepository.searchProducts", () => {
           quantity: null
         },
         {
-          product_id: 2,
+          product_id: "P002",
           product_name: "Missing Joins",
           product_short_description: null,
           product_type: null
@@ -213,7 +213,7 @@ describe("CatalogRepository.searchProducts", () => {
       rowCount: 1,
       rows: [
         {
-          product_id: 1,
+          product_id: "P001",
           product_name: "Lily Bouquet",
           product_short_description: null,
           product_type: null,

@@ -215,6 +215,7 @@ describe("ClaudeService.invokeWithTools", () => {
           content: [{ text: "Find flowers" }]
         }
       ],
+      system: [{ text: expect.stringContaining("Available marketing campaign records") }],
       toolConfig: {
         tools
       }

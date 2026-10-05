@@ -9,7 +9,10 @@
       "@/assets/*": [
         "./assets/*"
       ]
-    }
+    },
+    "types": [
+      "expo/types"
+    ]
   },
   "include": [
     "**/*.ts",
