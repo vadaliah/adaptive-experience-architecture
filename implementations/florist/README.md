@@ -81,3 +81,42 @@ The Expo web client can be started with:
 The local database route depends on a persistent AWS SSM port-forwarding session. A transient SSM network failure can terminate the forwarding session while the backend process remains active.
 
 Runtime supervision/reconnection for a failed SSM session remains a development-runtime improvement.
+
+## Campaign capability
+
+The Campaign Ribbon and natural-language prompts are independent inputs to one
+Campaign capability: registered tool → `CampaignService` → `CampaignRepository`.
+Ribbon clicks bypass Claude. Prompt decisions use the existing Bedrock tool
+registry, grounded with current campaign IDs, names and descriptions from the
+database. IDs are checked against those records before execution and looked up
+again by the service. A conservative name-evidence guard rejects ungrounded
+campaign selections; unsupported or ambiguous language can return a message.
+Categories and occasions are not campaigns.
+
+Tool contracts (inside the existing `{request, metadata}` agent envelope):
+
+- `listCampaigns({})` → `{campaigns: [{campaignId, campaignName, campaignDescription, displaySequence}]}`.
+- `getCampaignProducts({campaignId: string})` → `{campaign, products}`. No other
+  arguments or filters are accepted. Products come from a parameterized join
+  through `product_campaign_assignment`, with price and inventory data.
+
+HTTP contracts:
+
+- `GET /api/campaigns` lists campaigns in `display_sequence, campaign_id` order.
+- `POST /api/intent` accepts exactly `{campaignId}` for explicit selection or
+  `{prompt}` for agent orchestration. Mixed payloads/context/filters return 400;
+  unknown explicit campaign IDs return 404.
+- Intent results retain `metadata` and `dataset`, and add `kind` (`products`,
+  `campaigns`, `message`), optional `message`, and
+  `presentation: {selectedCampaignId: string | null}`.
+
+Presentation selection and product results commit together after a successful
+response. Failed/stale requests cannot replace a newer result. The selected ID is
+never sent with a prompt, and no conversational filtering state is stored. Result
+qualifiers are derived by the server from actual retrieval, never copied from
+model-generated claims. Campaign results include all assigned products; price,
+occasion, category and flower-only filtering are not implemented.
+
+The canonical V003 database model is used without modifying database artifacts,
+CDK, connection configuration, or the SQL runner. Tests use disposable local data;
+application deployment and live model evaluation are separate activities.
